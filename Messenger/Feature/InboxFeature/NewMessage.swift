@@ -13,23 +13,60 @@ public struct NewMessageLogic: Reducer {
     public struct State: Equatable {
         public init() {}
         @BindingState var searchText: String = ""
-        var contacts: IdentifiedArrayOf<ContactRowLogic.State> = [
-            ContactRowLogic.State(),
-            ContactRowLogic.State()
-        ]
+        var currentUser: User?
+        var contacts: IdentifiedArrayOf<ContactRowLogic.State> = []
     }
     public enum Action: Equatable, BindableAction {
+        case onTask
+        case loadContactResponseWithExceptionIds([User], [String])
         case cancelButtonTapped
         case binding(BindingAction<State>)
         case contactRow(id: ContactRowLogic.State.ID, action: ContactRowLogic.Action)
+        case contactRowTapped(ContactRowLogic.State.ID)
+        case delegate(Delegate)
+        
+        public enum Delegate: Equatable {
+            case contactRowTapped(ContactRowLogic.State.ID)
+        }
     }
+    
     @Dependency(\.dismiss) var dismiss
+    @Dependency(\.chatClient) var chatClient
+    @Dependency(\.firebaseAuth) var firebaseAuth
+    
     public var body: some ReducerOf<Self> {
         BindingReducer()
-        Reduce { state, action in
+        Reduce {
+            state,
+            action in
             switch action {
             case .cancelButtonTapped:
                 return .run { _ in
+                    await dismiss()
+                }
+            case .onTask:
+                return .run { send in
+                    if let currentUser = firebaseAuth.currentUser() {
+                        await send(
+                            .loadContactResponseWithExceptionIds(
+                                try await chatClient.allUsers(),
+                                [currentUser.uid]
+                            )
+                        )
+                    }
+                }
+                
+            case let .loadContactResponseWithExceptionIds(users, exceptionIds):
+                state.contacts = IdentifiedArray(
+                    uniqueElements: users
+                        .filter { !exceptionIds.contains($0.id) }
+                        .map(ContactRowLogic.State.init)
+                )
+                return .none
+                
+            case let .contactRowTapped(id):
+                return .run { send in
+                    await send(.delegate(.contactRowTapped(id)))
                     await dismiss()
                 }
             default: return .none
@@ -64,16 +101,23 @@ public struct NewMessageView: View {
                     store.scope(
                         state: \.contacts,
                         action: NewMessageLogic.Action.contactRow
-                    )) { store in
-                        VStack(alignment: .leading) {
-                            ContactRowView(store: store)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Divider()
-                                .padding(.leading, 40)
+                    )) { rowStore in
+                        WithViewStore(rowStore, observe: { $0 }) { viewStore in
+                            VStack(alignment: .leading) {
+                                ContactRowView(store: rowStore)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .onTapGesture {
+                                        store.send(.contactRowTapped(viewStore.id))
+                                    }
+                                Divider()
+                                    .padding(.leading, 40)
+                            }
                         }
                     }
                     .padding(.leading)
-                
+            }
+            .task {
+                await viewStore.send(.onTask).finish()
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

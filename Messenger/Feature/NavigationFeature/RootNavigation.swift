@@ -28,7 +28,7 @@ public struct RootNavigationLogic: Reducer {
                 state.path.append(.profile())
                 return .none
             case let .inbox(.delegate(.pushToChat(id))):
-                state.path.append(.chat(ChatLogic.State(id.uuidString)))
+                state.path.append(.chat(ChatLogic.State(id)))
                 return .none
             default: return .none
             }

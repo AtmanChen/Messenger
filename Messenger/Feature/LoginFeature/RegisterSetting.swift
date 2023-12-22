@@ -45,10 +45,12 @@ public struct RegisterSettingLogic: Reducer {
             case .signUpButtonTapped:
                 state.isActivityIndicatorVisible = true
                 return .run { [email = state.email, fullname = state.fullName, password = state.password] send in
-                    guard let authUser = try await firebaseAuth.signUp(email, fullname, password)?.user else {
+                    guard try await firebaseAuth.signUp(email, fullname, password) != nil else {
                         await send(.failedToSignUp)
                         return
                     }
+                } catch: { error, send in
+                    
                 }
             case .failedToSignUp:
                 state.isActivityIndicatorVisible = false

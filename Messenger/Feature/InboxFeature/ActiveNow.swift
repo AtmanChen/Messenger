@@ -45,7 +45,7 @@ public struct ActiveNowItem: View {
                                 .fill(Color(.systemBackground))
                                 .frame(width: 18, height: 18)
                             Circle()
-                                .fill(Color(.systemGreen))
+                                .fill(appTint.gradient)
                                 .frame(width: 12, height: 12)
                         }
                     }

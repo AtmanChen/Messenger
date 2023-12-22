@@ -17,23 +17,61 @@ public struct ChatLogic: Reducer {
         }
         var user: User?
         @BindingState var messageText: String = ""
-        var messages: IdentifiedArrayOf<ChatBubbleLogic.State> = [
-            ChatBubbleLogic.State(isFromCurrentUser: true),
-            ChatBubbleLogic.State(isFromCurrentUser: false),
-            ChatBubbleLogic.State(isFromCurrentUser: true)
-        ]
+        var messages: IdentifiedArrayOf<ChatBubbleLogic.State> = []
+        @BindingState var scrollTo: String?
         public var id: String
     }
     public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-        case sendMessageButtonTapped
+        case onTask
+        case messageReceivedResponse([Message])
+        case scrollToMessage(String)
+        case loadUserResponse(User)
+        case sendMessageButtonTapped(String)
         case bubbleMessage(id: ChatBubbleLogic.State.ID, action: ChatBubbleLogic.Action)
     }
+    
+    @Dependency(\.chatClient) var chatClient
+    @Dependency(\.firebaseAuth) var firebaseAuth
+    
     public var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce { state, action in
             switch action {
-            case .sendMessageButtonTapped:
+            case .onTask:
+                return .run { [id = state.id] send in
+                    if let fetchedUser = try await chatClient.user(id),
+                       let fromId = firebaseAuth.currentUser()?.uid {
+                        await send(.loadUserResponse(fetchedUser))
+                        for await receivedMessages in chatClient.observeMessages(fromId, fetchedUser) {
+                            await send(.messageReceivedResponse(receivedMessages), animation: .default)
+                        }
+                    }
+                }
+            case let .messageReceivedResponse(messages):
+                if let user = state.user {
+                    state.messages.append(contentsOf: messages.map { ChatBubbleLogic.State(message: $0, user: user) })
+                    if let lastMessageId = messages.last?.id {
+                        return .run { send in
+                            await send(.scrollToMessage(lastMessageId), animation: .default)
+                        }
+                    }
+                }
+                return .none
+                
+            case let .loadUserResponse(user):
+                state.user = user
+                return .none
+            case let .sendMessageButtonTapped(content):
+                state.messageText = ""
+                if let fromId = firebaseAuth.currentUser()?.uid {
+                    return .run { [toId = state.id] send in
+                        try await chatClient.sendMessage(fromId, toId, content)
+                    }
+                }
+                return .none
+            case let .scrollToMessage(messageId):
+                state.scrollTo = messageId
                 return .none
                 
             default: return .none
@@ -57,7 +95,7 @@ public struct ChatView: View {
                     if let user = viewStore.user {
                         VStack {
                             CircularProfileImageView(user: user, size: .xLarge)
-                            Text("Bruce Wayne")
+                            Text(user.fullname)
                                 .font(.title3)
                                 .fontWeight(.semibold)
                             Text("Messenger")
@@ -87,6 +125,7 @@ public struct ChatView: View {
                         }
                     }
                 }
+                .scrollPosition(id: viewStore.$scrollTo)
                 Spacer()
                 HStack(alignment: .bottom, spacing: 4) {
                     TextField("Message...", text: viewStore.$messageText, axis: .vertical)
@@ -95,7 +134,7 @@ public struct ChatView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 25.0))
                         .font(.subheadline)
                     Button {
-                        
+                        viewStore.send(.sendMessageButtonTapped(viewStore.messageText))
                     } label: {
                         Image(systemName: "arrow.up")
                             .resizable()
@@ -113,6 +152,9 @@ public struct ChatView: View {
                     .padding(.horizontal, 4)
                 }
                 .padding()
+            }
+            .task {
+                await viewStore.send(.onTask).finish()
             }
         }
     }

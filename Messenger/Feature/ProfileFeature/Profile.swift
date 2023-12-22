@@ -68,9 +68,12 @@ public struct ProfileLogic: Reducer {
         case logoutButtonTapped
     }
     @Dependency(\.firebaseAuth) var firebaseAuth
+    @Dependency(\.chatClient) var chatClient
     public var body: some Reducer<State, Action> {
         BindingReducer()
-        Reduce { state, action in
+        Reduce {
+            state,
+            action in
             switch action {
             case .binding(\.$photoPickerItems):
                 guard let photoPickerItem = state.photoPickerItems.first else {
@@ -86,7 +89,15 @@ public struct ProfileLogic: Reducer {
                 return .none
                 
             case .onTask:
-                return .none
+                return .run { send in
+                    if let authUser = firebaseAuth.currentUser() {
+                        await send(
+                            .loadUserResponse(
+                                try await chatClient.user(authUser.uid)
+                            )
+                        )
+                    }
+                }
                 
             case let .loadUserResponse(user):
                 state.user = user
@@ -146,7 +157,7 @@ public struct ProfileView: View {
                             }
                         
                         
-                        Text("Bruce Wayne")
+                        Text(user.fullname)
                             .font(.title2)
                             .fontWeight(.semibold)
                     }

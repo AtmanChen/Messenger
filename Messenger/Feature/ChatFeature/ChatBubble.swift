@@ -11,11 +11,20 @@ import SwiftUI
 
 public struct ChatBubbleLogic: Reducer {
     public struct State: Equatable, Identifiable {
+        public let message: Message
+        public let user: User
         public let isFromCurrentUser: Bool
-        public let id = UUID()
+        public init(message: Message, user: User) {
+            self.message = message
+            self.user = user
+            self.isFromCurrentUser = user.id == message.toId
+        }
+        public var id: String {
+            message.id
+        }
     }
     public enum Action: Equatable {
-        
+        case onTask
     }
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -31,43 +40,45 @@ public struct ChatBubbleView: View {
     }
     public var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            Group {
-                if viewStore.isFromCurrentUser {
-                    HStack {
-                        Spacer()
-                        Text("This is a test message for now")
-                            .font(.subheadline)
-                            .padding()
-                            .background {
-                                LinearGradient(
-                                    colors: [Color(.systemBlue), Color(.systemCyan)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            }
-                            .clipShape(ChatBubbleShape(role: .right))
-                            .frame(maxWidth: UIScreen.main.bounds.width / 1.5, alignment: .trailing)
-                    }
-                } else {
-                    HStack(alignment: .bottom, spacing: 4) {
-                        //                    CircularProfileImageView(user: .mock, size: .xxSmall)
-                        Text("Welcome to ISSUE #208 of The Overflow! This newsletter is by developers, for developers, written and curated by the Stack Overflow team and Cassidy Williams. This week: we discuss how to modernize alerting and incident management, ride a reindeer, and adopt a developer tool.")
-                            .font(.subheadline)
-                            .padding()
-                            .background {
-                                LinearGradient(
-                                    colors: [Color(.systemMint), Color(.systemPink)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            }
-                            .clipShape(ChatBubbleShape(role: .left))
-                            .frame(maxWidth: UIScreen.main.bounds.width / 1.75, alignment: .leading)
-                    }
+            if viewStore.isFromCurrentUser {
+                HStack {
+                    Spacer()
+                    Text(viewStore.message.messageText)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.gradient)
+                        .padding()
+                        .background {
+                            LinearGradient(
+                                colors: [Color(.systemBlue), Color(.systemCyan)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        }
+                        .clipShape(ChatBubbleShape(role: .right))
+                        .frame(maxWidth: UIScreen.main.bounds.width / 1.5, alignment: .trailing)
+                }
+                .padding(.horizontal)
+            } else {
+                HStack(alignment: .bottom, spacing: 4) {
+                    CircularProfileImageView(user: viewStore.user, size: .xxSmall)
+                    Text(viewStore.message.messageText)
+                        .font(.subheadline)
+                        .padding()
+                        .background {
+                            LinearGradient(
+                                colors: [Color(.systemMint), Color(.systemPink)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        }
+                        .clipShape(ChatBubbleShape(role: .left))
+                        .frame(maxWidth: UIScreen.main.bounds.width / 1.75, alignment: .leading)
                     Spacer()
                 }
+                .padding(.horizontal)
+                
             }
-            .padding(.horizontal)
+            
         }
     }
 }
@@ -100,19 +111,3 @@ private struct ChatBubbleShape: Shape {
     
 }
 
-#Preview {
-    Group {
-        ChatBubbleView(
-            store: Store(
-                initialState: ChatBubbleLogic.State(isFromCurrentUser: true),
-                reducer: { ChatBubbleLogic() }
-            )
-        )
-        ChatBubbleView(
-            store: Store(
-                initialState: ChatBubbleLogic.State(isFromCurrentUser: false),
-                reducer: { ChatBubbleLogic() }
-            )
-        )
-    }
-}

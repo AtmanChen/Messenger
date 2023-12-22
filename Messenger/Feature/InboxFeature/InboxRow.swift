@@ -12,7 +12,7 @@ import SwiftUI
 public struct InboxRowLogic: Reducer {
     public struct State: Equatable, Identifiable {
         // avatar, name, latest message, latest message timestamp etc...
-        public let id = UUID()
+        public let id = UUID().uuidString
         public init() {}
     }
     

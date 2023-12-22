@@ -11,8 +11,13 @@ import SwiftUI
 
 public struct ContactRowLogic: Reducer {
     public struct State: Equatable, Identifiable {
-        public let id = UUID()
-        public init() {}
+        public init(_ user: User) {
+            self.user = user
+        }
+        var user: User
+        public var id: String {
+            user.uid ?? UUID().uuidString
+        }
     }
     public enum Action: Equatable {
         
@@ -32,15 +37,13 @@ public struct ContactRowView: View {
     public var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 32, height: 32)
-                    .foregroundStyle(Color(.systemGray4).gradient)
-                Text("Bruce")
+                CircularProfileImageView(user: viewStore.user, size: .small)
+                Text(viewStore.user.fullname)
                     .font(.body)
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.primary.gradient)
             }
+            .contentShape(Rectangle())
         }
     }
 }

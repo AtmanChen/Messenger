@@ -30,12 +30,14 @@ public struct AppLogic: Reducer {
     
     @Dependency(\.userDefaults) var userDefaults
     @Dependency(\.chatClient) var chatClient
+    @Dependency(\.firebaseAuth.currentUser) var currentUser
     
     public enum Action {
         case appDelegate(AppDelegateLogic.Action)
         case sceneDelegate(SceneDelegateLogic.Action)
         case view(View.Action)
         case authUserResponse(TaskResult<FirebaseAuth.User?>)
+        case createUser(User, String)
     }
     
     public var body: some Reducer<State, Action> {
@@ -45,8 +47,20 @@ public struct AppLogic: Reducer {
                     return .none
                 }
                 let onboardCompleted = userDefaults.onboardCompleted()
-                if user != nil, onboardCompleted {
+                if let user, onboardCompleted {
                     state.view = .navigation()
+                    return .run { send in
+                        let uid = user.uid
+                        if try await chatClient.user(uid) == nil {
+                            if let authUser = currentUser() {
+                                let user = User(email: authUser.email ?? "", fullname: authUser.displayName ?? "")
+                                await send(.createUser(user, uid))
+                            }
+                        }
+                    } catch: { error, send in
+                        
+                    }
+                    
                 }  else {
                     if case .onboard = state.view {
                         
@@ -64,6 +78,10 @@ public struct AppLogic: Reducer {
             case .view(.login(.login(.delegate(.nextScreen)))):
                 state.view = .navigation()
                 return .none
+            case let .createUser(user, uid):
+                return .run { _ in
+                    try await chatClient.createUser(user, uid)
+                }
             default: return .none
             }
         }

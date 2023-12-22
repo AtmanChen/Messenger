@@ -14,7 +14,7 @@ public struct FirebaseAuthClient {
     public var currentUser: @Sendable () -> FirebaseAuth.User?
     public var addStateDidChangeListener: @Sendable () -> AsyncStream<FirebaseAuth.User?>
     public var signIn: @Sendable (String, String) async throws -> AuthDataResult?
-    public var signUp: @Sendable (String, String, String) async throws -> AuthDataResult?
+    public var signUp: @Sendable (String, String, String) async throws -> FirebaseAuth.User?
     public var signOut: @Sendable () throws -> Void
     public var canHandle: @Sendable (URL) -> Bool
     public var verifyEmail: @Sendable (String) async throws -> String?
@@ -49,7 +49,17 @@ extension FirebaseAuthClient: DependencyKey {
                     if let error {
                         continuation.resume(throwing: error)
                     } else if let user = result?.user {
-                        continuation.resume(returning: result)
+                        let updateProfileRequest = user.createProfileChangeRequest()
+                        updateProfileRequest.displayName = fullname
+                        updateProfileRequest.commitChanges { error in
+                            if let error {
+                                continuation.resume(throwing: error)
+                            } else {
+                                continuation.resume(returning: user)
+                            }
+                        }
+                    } else {
+                        continuation.resume(returning: result?.user)
                     }
                 }
             }

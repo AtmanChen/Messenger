@@ -47,6 +47,7 @@
 		1DAA3E702B32D39F00DA5857 /* FirebaseCoreClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAA3E6F2B32D39F00DA5857 /* FirebaseCoreClient.swift */; };
 		1DAA3E732B32E66400DA5857 /* ActivityButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAA3E722B32E66400DA5857 /* ActivityButton.swift */; };
 		1DAA3E752B3403E300DA5857 /* ChatClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAA3E742B3403E300DA5857 /* ChatClient.swift */; };
+		1DAA3E772B3528D700DA5857 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAA3E762B3528D700DA5857 /* Message.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -86,6 +87,7 @@
 		1DAA3E6F2B32D39F00DA5857 /* FirebaseCoreClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseCoreClient.swift; sourceTree = "<group>"; };
 		1DAA3E722B32E66400DA5857 /* ActivityButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityButton.swift; sourceTree = "<group>"; };
 		1DAA3E742B3403E300DA5857 /* ChatClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatClient.swift; sourceTree = "<group>"; };
+		1DAA3E762B3528D700DA5857 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -176,6 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				1DAA3E452B3192A700DA5857 /* User.swift */,
+				1DAA3E762B3528D700DA5857 /* Message.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -404,6 +407,7 @@
 				1DAA3E6B2B32CD8F00DA5857 /* UserDefaultsClient.swift in Sources */,
 				1DAA3E372B31427400DA5857 /* Inbox.swift in Sources */,
 				1DAA3E4C2B327AB800DA5857 /* CircularProfileImageView.swift in Sources */,
+				1DAA3E772B3528D700DA5857 /* Message.swift in Sources */,
 				1DAA3E3B2B31530D00DA5857 /* ActiveNow.swift in Sources */,
 				1DAA3E512B32864E00DA5857 /* ChatBubble.swift in Sources */,
 				1DAA3E462B3192A700DA5857 /* User.swift in Sources */,
@@ -565,7 +569,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
@@ -603,7 +607,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.5;

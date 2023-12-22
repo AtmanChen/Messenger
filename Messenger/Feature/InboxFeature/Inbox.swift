@@ -29,7 +29,7 @@ public struct InboxLogic: Reducer {
     
     public enum Action: Equatable {
         case onTask
-        case currentUserResponse(User)
+        case currentUserResponse(User?)
         case activeNow(ActiveNowLogic.Action)
         case inboxRow(id: InboxRowLogic.State.ID, action: InboxRowLogic.Action)
         case inboxRowTapped(InboxRowLogic.State.ID)
@@ -46,6 +46,7 @@ public struct InboxLogic: Reducer {
     }
     @Dependency(\.firebaseAuth) var firebaseAuth
     @Dependency(\.chatClient) var chatClient
+    @Dependency(\.mainQueue) var mainQueue
     
     public var body: some ReducerOf<Self> {
         Scope(state: \.activeNow, action: /Action.activeNow, child: ActiveNowLogic.init)
@@ -55,7 +56,13 @@ public struct InboxLogic: Reducer {
             switch action {
             case .onTask:
                 return .run { send in
-                    
+                    if let authUser = firebaseAuth.currentUser() {
+                        await send(
+                            .currentUserResponse(
+                                try await chatClient.user(authUser.uid)
+                            )
+                        )
+                    }
                 }
                 
             case let .currentUserResponse(user):
@@ -93,6 +100,12 @@ public struct InboxLogic: Reducer {
                 
             case let .inboxRowTapped(id):
                 return .send(.delegate(.pushToChat(id)), animation: .default)
+                
+            case let .destination(.presented(.newMessage(.delegate(.contactRowTapped(id))))):
+                return .run { send in
+                    try await mainQueue.sleep(for: .milliseconds(250))
+                    await send(.inboxRowTapped(id))
+                }
                 
             default: return .none
             }

@@ -22,7 +22,7 @@ public struct LoginSettingLogic: Reducer {
     public enum Action: Equatable, BindableAction {
         case forgetPasswordButtonTapped
         case loginButtonTapped
-        case loginResponse(TaskResult<AuthDataResult?>)
+        case loginFailed
         case signUpButtonTapped
         case binding(BindingAction<State>)
         case delegate(Delegate)
@@ -52,17 +52,14 @@ public struct LoginSettingLogic: Reducer {
                 // verify login information
                 state.isActivityIndicatorVisible = true
                 return .run { [email = state.email, password = state.password] send in
-                    await send(
-                        .loginResponse(TaskResult {
-                            try await firebaseAuth.signIn(email, password)
-                        }
-                      )
-                    )
+                    if try await firebaseAuth.signIn(email, password) == nil {
+                        await send(.loginFailed)
+                    }
                 } catch: { error, send in
                     print("Login Failed: \(error)")
                 }
                 
-            case .loginResponse:
+            case .loginFailed:
                 state.isActivityIndicatorVisible = false
                 return .none
                 
