@@ -18,7 +18,9 @@ public struct ChatLogic: Reducer {
         var user: User?
         @BindingState var messageText: String = ""
         var messages: IdentifiedArrayOf<ChatBubbleLogic.State> = []
+        var showEmpty = false
         @BindingState var scrollTo: String?
+        var firstLoad = true
         public var id: String
     }
     public enum Action: Equatable, BindableAction {
@@ -33,26 +35,30 @@ public struct ChatLogic: Reducer {
     
     @Dependency(\.chatClient) var chatClient
     @Dependency(\.firebaseAuth) var firebaseAuth
+    @Dependency(\.mainQueue) var mainQueue
     
     public var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce { state, action in
             switch action {
             case .onTask:
-                return .run { [id = state.id] send in
+                return .run { [id = state.id, firstLoad = state.firstLoad] send in
                     if let fetchedUser = try await chatClient.user(id),
                        let fromId = firebaseAuth.currentUser()?.uid {
                         await send(.loadUserResponse(fetchedUser))
-                        for await receivedMessages in chatClient.observeMessages(fromId, fetchedUser) {
-                            await send(.messageReceivedResponse(receivedMessages), animation: .default)
+                        for await receivedMessages in chatClient.observeChatMessages(fromId, fetchedUser) {
+                            await send(.messageReceivedResponse(receivedMessages), animation: firstLoad ? nil : .default)
                         }
                     }
                 }
             case let .messageReceivedResponse(messages):
+                state.firstLoad = false
+                state.showEmpty = messages.isEmpty
                 if let user = state.user {
                     state.messages.append(contentsOf: messages.map { ChatBubbleLogic.State(message: $0, user: user) })
                     if let lastMessageId = messages.last?.id {
                         return .run { send in
+                            try await mainQueue.sleep(for: .milliseconds(300))
                             await send(.scrollToMessage(lastMessageId), animation: .default)
                         }
                     }
@@ -102,7 +108,7 @@ public struct ChatView: View {
                                 .font(.footnote)
                                 .foregroundStyle(.gray.gradient)
                         }
-                        if viewStore.messages.isEmpty {
+                        if viewStore.showEmpty {
                             VStack {
                                 Image(systemName: "bubble.left.and.bubble.right.fill")
                                     .resizable()

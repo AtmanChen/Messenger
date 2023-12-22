@@ -49,7 +49,7 @@ public struct NewMessageLogic: Reducer {
                     if let currentUser = firebaseAuth.currentUser() {
                         await send(
                             .loadContactResponseWithExceptionIds(
-                                try await chatClient.allUsers(),
+                                try await chatClient.allUsers(nil),
                                 [currentUser.uid]
                             )
                         )

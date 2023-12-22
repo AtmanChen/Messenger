@@ -30,6 +30,7 @@ public struct InboxLogic: Reducer {
     public enum Action: Equatable {
         case onTask
         case currentUserResponse(User?)
+        case recentMessagesResponse([Message])
         case activeNow(ActiveNowLogic.Action)
         case inboxRow(id: InboxRowLogic.State.ID, action: InboxRowLogic.Action)
         case inboxRowTapped(InboxRowLogic.State.ID)
@@ -57,20 +58,52 @@ public struct InboxLogic: Reducer {
             case .onTask:
                 return .run { send in
                     if let authUser = firebaseAuth.currentUser() {
+                        let authId = authUser.uid
+                        
                         await send(
                             .currentUserResponse(
-                                try await chatClient.user(authUser.uid)
+                                try await chatClient.user(authId)
                             )
                         )
+                        await send(.activeNow(.loadNowUsers))
+                        for await var messages in chatClient.observeRecentMessages(authId) {
+                            if messages.isEmpty {
+                                continue
+                            }
+                            let messagePartnerIds = messages.map { $0.fromId != authId ? $0.fromId : $0.toId }
+                            let messagePartners = try await chatClient.users(messagePartnerIds)
+                            for (index, user) in messagePartners.enumerated() {
+                                messages[index].user = user
+                            }
+                            await send(.recentMessagesResponse(messages), animation: .default)
+                        }
                     }
+                }
+                
+            case let .activeNow(.delegate(.itemTapped(id))):
+                return .run { send in
+                    await send(.delegate(.pushToChat(id)))
                 }
                 
             case let .currentUserResponse(user):
                 state.currentUser = user
                 return .none
                 
-            case .activeNow:
+            case let .recentMessagesResponse(messages):
+                var currentRows: IdentifiedArrayOf<InboxRowLogic.State> = state.inboxRows
+                for message in messages {
+                    if let user = message.user {
+                        let rowState = InboxRowLogic.State(message)
+                        if let index = currentRows.index(id: user.id) {
+                            currentRows[index] = rowState
+                        } else {
+                            currentRows.append(rowState)
+                        }
+                    }
+                }
+                state.inboxRows = IdentifiedArray(uniqueElements: currentRows.sorted(by: { $0.message.timestamp.seconds > $1.message.timestamp.seconds }))
                 return .none
+                
             case let .delete(indexSet):
                 for index in indexSet {
                     state.inboxRows.remove(id: state.inboxRows[index].id)
@@ -154,6 +187,7 @@ public struct InboxView: View {
                     )) { rowStore in
                         WithViewStore(rowStore, observe: { $0 }) { viewStore in
                             InboxRowView(store: rowStore)
+                                .listRowSeparator(.hidden)
                                 .onTapGesture {
                                     store.send(.inboxRowTapped(viewStore.id))
                                 }
